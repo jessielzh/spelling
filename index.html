@@ -246,7 +246,7 @@ input.bad{border-color:var(--warn)}
         <button class="mini" id="again">🔊 Again</button>
         <button class="mini" id="slow">🐢 Slower</button>
         <button class="mini" id="hint">💡 Hint</button>
-        <button class="mini" id="skip">⏭ Skip</button>
+        <button class="mini" id="skip">⏭ Later</button>
       </div>
 
       <div class="fb" id="fb" style="display:none"></div>
@@ -562,7 +562,7 @@ function renderHome(){
    A round
    ============================================================ */
 let mode="test", queue=[], at=0, phase="input", hinted=false, tally={right:0,wrong:0};
-let levelNo=0, streak=0, skipped=new Set(), sessionStart=0;
+let levelNo=0, streak=0, sessionStart=0;
 /* Words actually spelled right in this pass. Stars depend on this, not on the
    miss count — skipping every word leaves zero misses, which used to read as
    a flawless level. */
@@ -577,7 +577,7 @@ function startLevel(n, go){
   if(go === "test") return startTestPass();   // straight to the blind pass
   mode = "practice";
   queue = wordsOf(n);
-  at = 0; streak = 0; skipped = new Set(); solved = new Set(); tally = {right:0,wrong:0};
+  at = 0; streak = 0; solved = new Set(); tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -585,7 +585,7 @@ function startLevel(n, go){
 function startTestPass(){
   mode = "test";
   queue = wordsOf(levelNo).slice().sort(()=>Math.random()-0.5);
-  at = 0; streak = 0; skipped = new Set(); solved = new Set(); tally = {right:0,wrong:0};
+  at = 0; streak = 0; solved = new Set(); tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -606,7 +606,7 @@ function startRound(m){
     pool.sort(()=>Math.random()-0.5);
     pool.sort((a,b)=>rank(a)-rank(b));
   }
-  queue = pool; at = 0; streak = 0; skipped = new Set(); solved = new Set(); tally = {right:0,wrong:0};
+  queue = pool; at = 0; streak = 0; solved = new Set(); tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -632,12 +632,10 @@ let gen = 0;
 
 function step(){
   if(at >= queue.length){
-    /* Safety net: a level must never end with a word he never actually spelled.
-       Anything he attempted ends up in `solved` (a miss forces a correction),
-       so only deliberately skipped words can be outstanding here — those he
-       chose to drop. Everything else goes back on the end of the queue. */
+    /* A level ends only when every one of its words has actually been spelled.
+       Deferred words included — skipping postpones, it never excuses. */
     if(levelNo && mode==="test"){
-      const missing = wordsOf(levelNo).filter(o => !solved.has(o.w) && !skipped.has(o.w));
+      const missing = wordsOf(levelNo).filter(o => !solved.has(o.w));
       if(missing.length) queue.push(...missing);
     }
     if(at >= queue.length) return finish();
@@ -908,17 +906,14 @@ $("#hint").onclick = ()=>{
   $("#ans").focus();
 };
 
-/* Skip: no penalty, no score change — it just goes to the back of this round
-   so a word he can't face yet doesn't stall the whole level. It returns once;
-   skip it twice and it's left for next time. */
+/* "Later" defers a word, it does not drop it — Kai's rule: you don't finish a
+   level by skipping, every word has to be spelled. No penalty, it just goes to
+   the back of the queue and will come round again. Finish is the way out. */
 $("#skip").onclick = ()=>{
   const o = current();
   stats[o.w].skips = (stats[o.w].skips||0) + 1;
   save();
-  if(!skipped.has(o.w)){
-    skipped.add(o.w);
-    queue.push(o);
-  }
+  queue.push(o);
   streak = 0;
   step2();
 };
