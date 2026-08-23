@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kai's Spelling</title>
+<style>
+:root{
+  --bg:#faf7f2; --card:#fff; --ink:#22201d; --muted:#6f6a63; --line:#e6e0d6;
+  --accent:#2f6f4e; --accent-soft:#e4f0e9;
+  --warn:#b5661a; --warn-soft:#fbeee0;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#17161a; --card:#211f24; --ink:#f0ece6; --muted:#9d968c; --line:#332f38;
+    --accent:#6fc494; --accent-soft:#1e3329;
+    --warn:#e8a765; --warn-soft:#3a2c1c;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:400 18px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  -webkit-text-size-adjust:100%;
+  padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 24px);
+}
+.wrap{max-width:640px;margin:0 auto;padding-top:28px}
+.screen{display:none}
+.screen.on{display:block}
+
+/* ---------- shared ---------- */
+h1{font-size:26px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:16px;margin-top:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:22px;box-shadow:var(--shadow)}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+.btn{display:block;width:100%;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:20px;font-size:20px;font-weight:600;text-align:left;
+  box-shadow:var(--shadow);transition:transform .08s ease,border-color .15s ease}
+.btn:hover{border-color:var(--accent)}
+.btn:active{transform:scale(.99)}
+.btn small{display:block;font-size:15px;font-weight:400;color:var(--muted);margin-top:3px}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary small{color:rgba(255,255,255,.85)}
+.mini{border:1px solid var(--line);background:var(--card);border-radius:999px;
+  padding:10px 16px;font-size:16px;min-height:44px}
+.mini:hover{border-color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ---------- start ---------- */
+#start .card{text-align:center;padding:44px 24px}
+#start .big{font-size:52px;margin-bottom:8px}
+
+/* ---------- home ---------- */
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:22px}
+.days{color:var(--accent);font-weight:600;font-size:16px;white-space:nowrap}
+.stack{display:flex;flex-direction:column;gap:12px;margin-bottom:26px}
+.tally{display:flex;gap:18px;font-size:15px;color:var(--muted);margin-bottom:14px;flex-wrap:wrap}
+.tally b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td{padding:11px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.wd{font-weight:600;line-height:1.25}
+.mn{color:var(--muted);font-size:14px;line-height:1.35;margin-top:2px;
+    max-width:38ch}
+.tick{color:var(--accent);font-weight:700;margin-left:5px}
+td.acc{width:92px;padding-left:14px;text-align:right;vertical-align:middle}
+/* named .meter, NOT .bar — .bar is already the round header strip above */
+.meter{width:78px;height:7px;border-radius:4px;background:var(--line);
+     overflow:hidden;margin-left:auto}
+.meter i{display:block;height:100%;border-radius:4px;background:var(--accent);
+       transition:width .3s ease}
+.meter.mid i{background:#c9a227}
+.meter.low i{background:var(--warn)}
+.pct{font-size:12px;color:var(--muted);margin-top:5px;white-space:nowrap}
+.reset{margin-top:22px;font-size:14px;color:var(--muted);text-decoration:underline}
+
+/* ---------- round ---------- */
+.bar{display:flex;justify-content:space-between;align-items:center;
+  font-size:15px;color:var(--muted);margin-bottom:24px}
+.quit{font-size:15px;color:var(--muted);text-decoration:underline}
+.stage{text-align:center;padding:10px 0 4px;min-height:104px;
+  display:flex;flex-direction:column;justify-content:center;gap:10px}
+.word{font-size:46px;font-weight:700;letter-spacing:-.02em;word-break:break-word;line-height:1.15}
+.chunks{font-size:19px;color:var(--muted);letter-spacing:.04em}
+.mean{font-size:17px;color:var(--muted);max-width:34ch;margin:0 auto}
+.hintbox{background:var(--accent-soft);border-radius:12px;padding:12px 16px;
+  text-align:center;max-width:none;color:var(--ink);font-size:17px}
+.hintbox .chunks{font-size:17px}
+[hidden]{display:none !important}
+.hidden-word{font-size:44px;color:var(--line);letter-spacing:.14em}
+/* NB: must be longhand — `font: 600 30px/1.3 inherit` is invalid CSS
+   (inherit isn't a legal family inside the shorthand) and gets dropped
+   wholesale, leaving the browser's tiny default input font. */
+input{
+  width:100%;
+  font-family:inherit; font-size:36px; font-weight:600; line-height:1.2;
+  color:inherit; text-align:center; letter-spacing:.01em;
+  background:var(--bg); border:2px solid var(--line); border-radius:14px;
+  padding:22px 16px; margin:20px 0 16px; outline:none;
+}
+@media (max-width:480px){ input{ font-size:30px; padding:18px 12px } }
+input:focus{border-color:var(--accent)}
+input.bad{border-color:var(--warn)}
+
+/* ---------- feedback ---------- */
+.fb{margin-top:6px}
+.fbrow{display:flex;align-items:center;gap:12px;margin-bottom:8px;
+  font-size:15px;color:var(--muted)}
+.fbrow .lbl{width:82px;flex:none;text-align:right}
+.cells{display:flex;gap:3px;flex-wrap:wrap;font:600 26px/1 ui-monospace,Menlo,monospace}
+.c{min-width:.72em;padding:5px 3px;border-radius:5px;text-align:center}
+.c.ok{color:var(--ink)}
+.c.bad{background:var(--warn-soft);color:var(--warn)}
+.c.gap{background:var(--warn-soft);color:var(--warn);opacity:.55}
+.c.sp{min-width:.4em}
+.verdict{font-size:22px;font-weight:700;margin-bottom:14px}
+.verdict.good{color:var(--accent)}
+.verdict.miss{color:var(--warn)}
+.note{font-size:15px;color:var(--muted);margin:10px 0 16px}
+.note.retry-ask{color:var(--warn);font-weight:600;font-size:17px;margin-bottom:10px}
+
+/* ---------- done ---------- */
+#done .card{text-align:center;padding:40px 24px}
+#done .big{font-size:52px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ START (primes speech; browsers need a tap) ============ -->
+  <section id="start" class="screen on">
+    <div class="card">
+      <div class="big">📣</div>
+      <h1>Kai's Spelling</h1>
+      <p class="sub" style="margin:10px 0 22px">Week of <span data-week></span> &middot; <span data-count></span> words</p>
+      <button class="btn primary" id="go" style="text-align:center">Tap to start</button>
+      <p class="sub" style="margin-top:16px;font-size:14px">Turn the sound on 🔊</p>
+    </div>
+  </section>
+
+  <!-- ============ HOME ============ -->
+  <section id="home" class="screen">
+    <div class="head">
+      <div>
+        <h1>Kai's Spelling</h1>
+        <div class="sub">Week of <span data-week></span> &middot; <span data-count></span> words</div>
+      </div>
+      <div class="days" id="days"></div>
+    </div>
+
+    <div class="stack">
+      <button class="btn primary" data-mode="test">✍️ Test
+        <small id="test-sub">Hear the word, type it — no peeking</small></button>
+      <button class="btn" data-mode="practice">📖 Practice
+        <small>See the word and copy it</small></button>
+    </div>
+
+    <div class="card">
+      <div class="tally" id="tally"></div>
+      <table id="list"></table>
+      <button class="reset" id="reset">Start this week over</button>
+    </div>
+  </section>
+
+  <!-- ============ ROUND ============ -->
+  <section id="round" class="screen">
+    <div class="bar">
+      <span id="pos"></span>
+      <button class="quit" id="quit">Finish</button>
+    </div>
+
+    <div class="card">
+      <div class="stage" id="stage"></div>
+      <div class="mean hintbox" id="hintbox" hidden></div>
+
+      <input id="ans" type="text" inputmode="text"
+             autocomplete="off" autocorrect="off" autocapitalize="off"
+             spellcheck="false" enterkeyhint="go" aria-label="Type the word">
+
+      <div class="row" id="tools">
+        <button class="mini" id="again">🔊 Again</button>
+        <button class="mini" id="slow">🐢 Slower</button>
+        <button class="mini" id="hint">💡 Hint</button>
+      </div>
+
+      <div class="fb" id="fb" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ============ DONE ============ -->
+  <section id="done" class="screen">
+    <div class="card">
+      <div class="big" id="done-emoji">🎉</div>
+      <h1 id="done-title"></h1>
+      <p class="sub" style="margin:12px 0 24px" id="done-sub"></p>
+      <button class="btn primary" id="back" style="text-align:center">Back</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   WORD LIST — update this each week.
+   w = word   m = short kid meaning   c = syllable chunks (optional)
+   ============================================================ */
+const WEEK      = "Aug 28";
+const TEST_DATE = "2026-08-28";
+
+const WORDS = [
+  { w:"line",         m:"one row of words in a poem" },
+  { w:"stanza",       m:"a group of lines in a poem",                    c:"stan·za" },
+  { w:"alliteration", m:"words next to each other starting with the same sound", c:"al·lit·er·a·tion" },
+  { w:"rhyme",        m:"words that end with the same sound" },
+  { w:"rhythm",       m:"the beat of a poem",                            c:"rhy·thm" },
+  { w:"imagery",      m:"words that make a picture in your mind",        c:"im·age·ry" },
+  { w:"onomatopoeia", m:"a word that sounds like its noise — buzz, splash", c:"on·o·mat·o·poe·ia" },
+  { w:"infer",        m:"to figure out from clues" },
+  { w:"splattered",   m:"splashed in drops",                             c:"splat·tered" },
+  { w:"depend",       m:"to need something" },
+  { w:"glazed",       m:"covered with something shiny" },
+  { w:"wheelbarrow",  m:"a small cart with one wheel",                   c:"wheel·bar·row" },
+  { w:"gist",         m:"the main idea" },
+  { w:"characteristics", m:"what someone or something is like",          c:"char·ac·ter·is·tics" },
+  { w:"contrast",     m:"to show how things are different",              c:"con·trast" },
+  { w:"theme",        m:"the big idea of a story" },
+  { w:"repetition",   m:"saying something again and again",              c:"rep·e·ti·tion" },
+  { w:"details",      m:"small pieces of information",                   c:"de·tails" },
+  { w:"purchase",     m:"to buy",                                        c:"pur·chase" },
+  { w:"community",    m:"a group of people living in one place",         c:"com·mu·ni·ty" },
+  { w:"deliver",      m:"to bring something to someone",                 c:"de·liv·er" },
+  { w:"figurative language", m:"words that mean something other than what they say", c:"fig·ur·a·tive" },
+];
+
+/* Hardest first on day one, before we know his real mistakes. */
+const HARD = ["onomatopoeia","alliteration","characteristics","repetition",
+              "wheelbarrow","splattered","rhythm"];
+
+const GOAL = 2;   // spell it right twice and it's done
+
+/* ============================================================
+   Storage — keyed by week, so a new list starts clean
+   ============================================================ */
+const KEY = "kai-spelling:" + WEEK;
+let stats = {};
+
+const fresh = () => ({score:0, tries:0, hits:0, errs:[]});
+
+function load(){
+  try{ stats = JSON.parse(localStorage.getItem(KEY)) || {}; }
+  catch(e){ stats = {}; }
+  WORDS.forEach(o=>{ stats[o.w] = stats[o.w] || fresh(); });
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(stats)); }catch(e){}
+}
+/* Must drop the stored copy BEFORE rebuilding — calling load() here would just
+   read last week's data straight back in and save() would re-persist it. */
+function wipe(){
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  stats = {};
+  WORDS.forEach(o=>{ stats[o.w] = fresh(); });
+  save();
+}
+
+/* ============================================================
+   Speech — the whole reason this app exists
+   ============================================================ */
+let voice = null, canSpeak = ("speechSynthesis" in window);
+
+function pickVoice(){
+  if(!canSpeak) return;
+  const v = speechSynthesis.getVoices();
+  if(!v.length) return;
+  voice = v.find(x=>x.name==="Samantha")
+       || v.find(x=>x.lang==="en-US" && x.localService)
+       || v.find(x=>x.lang==="en-US")
+       || v.find(x=>x.lang && x.lang.startsWith("en"))
+       || v[0];
+}
+if(canSpeak){
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+
+function say(text, rate){
+  if(!canSpeak) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = rate || 0.85;
+    u.lang = "en-US";
+    if(voice) u.voice = voice;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* If no voice ever shows up, Test mode flashes the word instead of speaking it.
+   Degraded, but it still works. */
+let noVoice = false;
+setTimeout(()=>{
+  if(!canSpeak || !speechSynthesis.getVoices().length) noVoice = true;
+}, 1600);
+
+/* ============================================================
+   Letter-level diff — the feature that beats paper.
+   Levenshtein with backtrace, so a single missing letter is reported as
+   ONE missing letter, not "everything after it is wrong".
+   ============================================================ */
+function align(a, b){                       // a = typed, b = correct
+  const n=a.length, m=b.length;
+  const dp = Array.from({length:n+1}, ()=> new Array(m+1).fill(0));
+  for(let i=0;i<=n;i++) dp[i][0]=i;
+  for(let j=0;j<=m;j++) dp[0][j]=j;
+  for(let i=1;i<=n;i++)
+    for(let j=1;j<=m;j++)
+      dp[i][j] = (a[i-1]===b[j-1])
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]);
+
+  const ops=[]; let i=n, j=m;
+  while(i>0 || j>0){
+    if(i>0 && j>0 && a[i-1]===b[j-1] && dp[i][j]===dp[i-1][j-1]){
+      ops.push({t:"ok", a:a[i-1], b:b[j-1]}); i--; j--;
+    } else if(i>0 && j>0 && dp[i][j]===dp[i-1][j-1]+1){
+      ops.push({t:"sub", a:a[i-1], b:b[j-1]}); i--; j--;
+    } else if(j>0 && dp[i][j]===dp[i][j-1]+1){
+      ops.push({t:"miss", a:null, b:b[j-1]}); j--;      // he left a letter out
+    } else {
+      ops.push({t:"extra", a:a[i-1], b:null}); i--;     // he added a letter
+    }
+  }
+  return ops.reverse();
+}
+
+const norm = s => s.trim().toLowerCase().replace(/\s+/g," ");
+
+function cell(ch, cls){
+  if(ch === null) return `<span class="c gap">·</span>`;
+  if(ch === " ")  return `<span class="c sp"></span>`;
+  return `<span class="c ${cls}">${ch}</span>`;
+}
+
+function renderDiff(typed, correct){
+  const ops = align(typed, correct);
+  const top = ops.map(o =>
+    o.t==="ok"    ? cell(o.a,"ok")
+  : o.t==="miss"  ? cell(null)
+  :                 cell(o.a,"bad")).join("");
+  const bot = ops.map(o =>
+    o.t==="ok"    ? cell(o.b,"ok")
+  : o.t==="extra" ? cell(null)
+  :                 cell(o.b,"bad")).join("");
+
+  // Name the single most useful correction, when there is exactly one.
+  const wrong = ops.filter(o=>o.t!=="ok");
+  let note = "";
+  if(wrong.length===1){
+    const o = wrong[0];
+    note = o.t==="miss"  ? `You missed the <b>${o.b}</b>.`
+         : o.t==="extra" ? `There's an extra <b>${o.a}</b>.`
+         :                 `It's <b>${o.b}</b>, not <b>${o.a}</b>.`;
+  } else if(wrong.length && wrong.length<=3){
+    note = "Look at the orange letters.";
+  }
+
+  return `
+    <div class="fbrow"><span class="lbl">You typed</span><span class="cells">${top || cell(null)}</span></div>
+    <div class="fbrow"><span class="lbl">Correct</span><span class="cells">${bot}</span></div>
+    ${note ? `<div class="note">${note}</div>` : ""}`;
+}
+
+/* ============================================================
+   Screens
+   ============================================================ */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const show = id => $$(".screen").forEach(s => s.classList.toggle("on", s.id===id));
+
+function daysLeft(){
+  const t = new Date(TEST_DATE+"T00:00:00");
+  const n = new Date(); n.setHours(0,0,0,0);
+  return Math.round((t-n)/86400000);
+}
+
+function renderHome(){
+  const need = WORDS.filter(o => stats[o.w].score < GOAL).length;
+  const done = WORDS.length - need;
+  const shaky = WORDS.filter(o => stats[o.w].score===0 && stats[o.w].tries>0).length;
+
+  const d = daysLeft();
+  $("#days").textContent =
+    d > 1 ? d+" days to go" : d===1 ? "Tomorrow!" : d===0 ? "Test today!" : "";
+
+  $("#test-sub").textContent = need
+    ? `${need} word${need===1?"":"s"} still to nail`
+    : "All done — go again to keep it sharp";
+
+  $("#tally").innerHTML =
+    `<span><b>${done}</b> done</span>
+     <span><b>${need-shaky}</b> in progress</span>
+     <span><b>${shaky}</b> tricky</span>`;
+
+  $("#list").innerHTML = WORDS.map(o=>{
+    const s   = stats[o.w];
+    const pct = s.tries ? Math.round(100 * s.hits / s.tries) : null;
+    const cls = pct === null ? "" : pct >= 80 ? "" : pct >= 50 ? "mid" : "low";
+    const tick  = s.score >= GOAL ? `<span class="tick">✓</span>` : "";
+    const label = pct === null ? "not tried" : `${pct}% · ${s.hits}/${s.tries}`;
+    // Misspellings still recorded — moved to a hover tooltip instead of the row.
+    const tip = s.errs.length ? ` title="typed: ${s.errs.join(", ")}"` : "";
+    return `<tr${tip}>
+      <td><div class="wd">${o.w}${tick}</div><div class="mn">${o.m}</div></td>
+      <td class="acc">
+        <div class="meter ${cls}"><i style="width:${pct || 0}%"></i></div>
+        <div class="pct">${label}</div>
+      </td></tr>`;
+  }).join("");
+}
+
+/* ============================================================
+   A round
+   ============================================================ */
+let mode="test", queue=[], at=0, phase="input", hinted=false, tally={right:0,wrong:0};
+
+function startRound(m){
+  mode = m;
+  let pool = (m==="practice")
+    ? WORDS.slice()
+    : WORDS.filter(o=>stats[o.w].score<GOAL);
+
+  if(!pool.length) pool = WORDS.slice();          // all done → free practice
+
+  if(m==="test"){
+    // Shuffle, then float the words he's struggling with toward the front.
+    pool.sort(()=>Math.random()-0.5);
+    pool.sort((a,b)=>rank(a)-rank(b));
+  }
+  queue = pool; at = 0; tally = {right:0,wrong:0};
+  show("round");
+  step();
+}
+
+/* lower = show sooner: known-bad first, then never-tried hard words */
+function rank(o){
+  const s = stats[o.w];
+  if(s.tries && s.score===0) return 0;
+  if(s.score < GOAL && HARD.includes(o.w)) return 1;
+  if(s.score < GOAL) return 2;
+  return 3;
+}
+
+function current(){ return queue[at]; }
+
+function step(){
+  if(at >= queue.length) return finish();
+  phase="input"; hinted=false;
+
+  const o = current();
+  $("#pos").textContent = `Word ${at+1} of ${queue.length}`;
+  $("#fb").style.display = "none";
+  $("#fb").innerHTML = "";
+  $("#tools").style.display = "flex";
+
+  // Reset the hint for every word. (It used to stay hidden for the rest of the
+  // round after one use, and in Practice it duplicated the meaning already shown.)
+  const hb = $("#hintbox");
+  hb.hidden = true; hb.innerHTML = "";
+  $("#hint").hidden = (mode === "practice");
+
+  const ans = $("#ans");
+  ans.value=""; ans.classList.remove("bad"); ans.disabled=false;
+
+  if(mode==="practice"){
+    $("#stage").innerHTML = `
+      <div class="word">${o.w}</div>
+      ${o.c ? `<div class="chunks">${o.c}</div>` : ""}
+      <div class="mean">${o.m}</div>`;
+    say(o.w);
+  } else {
+    // The word is NOT shown. That's the entire point.
+    // Fixed three dots — a length-matched row would quietly leak the answer.
+    const veil = `<div class="hidden-word">• • •</div>`;
+    $("#stage").innerHTML = veil;
+    if(noVoice){
+      // No speech available: flash it briefly, then hide.
+      $("#stage").innerHTML = `<div class="word">${o.w}</div>`;
+      setTimeout(()=>{
+        if(phase==="input" && current()===o) $("#stage").innerHTML = veil;
+      }, 2000);
+    } else {
+      say(o.w);
+    }
+  }
+  ans.focus();
+}
+
+/* A miss doesn't skip ahead: he types it again, correctly, before moving on.
+   The correct spelling stays on screen during the fix — that step is the
+   correction, not the test. The real test is the cold re-ask a few words
+   later, which the requeue below sets up. */
+function submit(){
+  if(phase==="feedback") return step2();
+
+  const o = current();
+  const typed = $("#ans").value;
+  if(!norm(typed)) return;
+
+  const ok  = norm(typed) === norm(o.w);
+  const s   = stats[o.w];
+  const fix = (phase === "retry");        // already got it wrong once
+
+  if(ok) return accept(o, s, fix);
+  return refuse(o, s, typed, fix);
+}
+
+/* correct */
+function accept(o, s, fix){
+  if(!fix){
+    s.tries++;                 // every first attempt counts, right or wrong,
+    s.hits++;                  // so hits/tries is a real accuracy rate
+    tally.right++;
+    if(mode==="test" && !hinted) s.score = Math.min(GOAL, s.score+1);
+    save();
+  }
+  phase="feedback";
+  $("#tools").style.display="none";
+  $("#ans").disabled = true;
+  $("#ans").classList.remove("bad");
+  $("#fb").style.display="block";
+  $("#fb").innerHTML =
+    `<div class="verdict good">✓ ${o.w}</div>` +
+    (fix    ? `<div class="note">Fixed it — you'll see this one again later.</div>`
+   : hinted ? `<div class="note">Nice — try it without the hint next time.</div>` : "");
+  setTimeout(()=>{ if(phase==="feedback") step2(); }, fix ? 1300 : 1100);
+}
+
+/* wrong — stay on this word until it's typed right */
+function refuse(o, s, typed, fix){
+  if(!fix){                                // score/queue effects happen once
+    s.tries++;
+    tally.wrong++;
+    if(mode==="test") s.score = 0;         // a copying typo shouldn't wipe real progress
+    // Missed words come back cold a few items later — that's the actual re-test.
+    if(mode==="test" && !queue.slice(at+1).includes(o)){
+      queue.splice(Math.min(at+3, queue.length), 0, o);
+    }
+  }
+  if(s.errs[s.errs.length-1] !== norm(typed)) s.errs.push(norm(typed));
+  if(s.errs.length>4) s.errs.shift();
+  save();
+
+  phase="retry";
+  $("#tools").style.display="none";
+  $("#fb").style.display="block";
+  $("#fb").innerHTML =
+    `<div class="verdict miss">${fix ? "Almost — look again" : "Not quite"}</div>` +
+    renderDiff(norm(typed), norm(o.w)) +
+    `<div class="note retry-ask">Now type it again, correctly 👇</div>
+     <div class="row"><button class="mini" id="hear">🔊 Hear it</button></div>`;
+
+  const ans = $("#ans");
+  ans.disabled = false;
+  ans.classList.add("bad");
+  ans.value = "";
+  ans.focus();
+  $("#hear").onclick = ()=> say(o.w, 0.7);
+}
+
+function step2(){ at++; step(); }
+
+function finish(){
+  const need = WORDS.filter(o=>stats[o.w].score<GOAL).length;
+  const perfect = tally.wrong===0 && tally.right>0;
+  $("#done-emoji").textContent = perfect ? "🏆" : need===0 ? "🎉" : "💪";
+  $("#done-title").textContent =
+    perfect ? "Perfect round!" : need===0 ? "Every word done!" : "Good work";
+  $("#done-sub").textContent =
+    `${tally.right} right, ${tally.wrong} to fix.` +
+    (need ? ` ${need} word${need===1?"":"s"} left to nail.` : " Ready for Friday.");
+  show("done");
+  renderHome();
+}
+
+/* ============================================================
+   Wiring
+   ============================================================ */
+load();
+$$("[data-week]").forEach(e=>e.textContent = WEEK);
+$$("[data-count]").forEach(e=>e.textContent = WORDS.length);
+renderHome();
+
+$("#go").onclick = ()=>{
+  // Prime the speech engine inside a user gesture (Safari requires this).
+  if(canSpeak){ try{ speechSynthesis.speak(new SpeechSynthesisUtterance(" ")); }catch(e){} }
+  pickVoice();
+  show("home");
+};
+
+$$("[data-mode]").forEach(b => b.onclick = ()=> startRound(b.dataset.mode));
+
+$("#ans").addEventListener("keydown", e=>{
+  if(e.key==="Enter"){
+    // stopPropagation matters: without it this same keypress bubbles to the
+    // document handler below, which — now that phase is "feedback" — would
+    // fire step2() instantly and skip the ✓ / correction message.
+    e.preventDefault(); e.stopPropagation();
+    submit();
+  }
+});
+document.addEventListener("keydown", e=>{
+  if($("#round").classList.contains("on") && phase==="feedback" && e.key==="Enter"){
+    e.preventDefault(); step2();
+  }
+});
+
+$("#again").onclick = ()=> say(current().w);
+$("#slow").onclick  = ()=> say(current().w, 0.55);
+/* Hint reveals the meaning once, into its own box — never stacking, and only
+   in Test, where the meaning isn't already on screen. */
+$("#hint").onclick = ()=>{
+  const o = current(), hb = $("#hintbox");
+  hinted = true;
+  hb.innerHTML = o.m + (o.c ? ` &middot; <span class="chunks">${o.c}</span>` : "");
+  hb.hidden = false;
+  $("#hint").hidden = true;
+  $("#ans").focus();
+};
+
+$("#quit").onclick = finish;
+$("#back").onclick = ()=>{ renderHome(); show("home"); };
+$("#reset").onclick = ()=>{
+  if(!confirm("Clear this week's progress?")) return;
+  wipe();
+  renderHome();
+};
+</script>
+</body>
+</html>
