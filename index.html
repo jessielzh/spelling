@@ -625,8 +625,24 @@ function rank(o){
 
 function current(){ return queue[at]; }
 
+/* Bumped on every word. The auto-advance timer captures the value it was
+   scheduled under, so a timer left over from an earlier word can never
+   advance a later one — that raced with Enter and skipped words. */
+let gen = 0;
+
 function step(){
-  if(at >= queue.length) return finish();
+  if(at >= queue.length){
+    /* Safety net: a level must never end with a word he never actually spelled.
+       Anything he attempted ends up in `solved` (a miss forces a correction),
+       so only deliberately skipped words can be outstanding here — those he
+       chose to drop. Everything else goes back on the end of the queue. */
+    if(levelNo && mode==="test"){
+      const missing = wordsOf(levelNo).filter(o => !solved.has(o.w) && !skipped.has(o.w));
+      if(missing.length) queue.push(...missing);
+    }
+    if(at >= queue.length) return finish();
+  }
+  gen++;
   phase="input"; hinted=false;
 
   const o = current();
@@ -714,7 +730,8 @@ function accept(o, s, fix){
     `<div class="verdict good">✓ ${o.w}</div>` +
     (fix    ? `<div class="note">Fixed it — you'll see this one again later.</div>`
    : hinted ? `<div class="note">Nice — try it without the hint next time.</div>` : "");
-  setTimeout(()=>{ if(phase==="feedback") step2(); }, fix ? 1300 : 1100);
+  const g = gen;   // only advance if we're still on THIS word
+  setTimeout(()=>{ if(gen===g && phase==="feedback") step2(); }, fix ? 1300 : 1100);
 }
 
 /* wrong — stay on this word until it's typed right */
@@ -750,9 +767,10 @@ function refuse(o, s, typed, fix){
   $("#hear").onclick = ()=> saySlow(o);   // he just missed it — read it slowly
 }
 
-function step2(){ at++; step(); }
+function step2(){ gen++; at++; step(); }
 
 function finish(){
+  gen++;                 // stop any pending timer from re-entering the round
   // Warm-up just ended -> hand off to the blind pass on the same words.
   if(levelNo && mode==="practice"){
     const L = LEVELS[levelNo-1];
