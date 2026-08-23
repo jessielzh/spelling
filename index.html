@@ -85,19 +85,19 @@ td.acc{width:92px;padding-left:14px;text-align:right;vertical-align:middle}
 .seg button.on{background:var(--accent);color:#fff}
 
 /* ---------- level cards ---------- */
-.lv{display:flex;align-items:center;gap:14px;width:100%;background:var(--card);
-  border:1px solid var(--line);border-radius:14px;padding:16px 18px;
-  box-shadow:var(--shadow);text-align:left;transition:border-color .15s ease,transform .08s ease}
-.lv:hover{border-color:var(--accent)}
-.lv:active{transform:scale(.99)}
+.lv{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:15px 16px;box-shadow:var(--shadow);text-align:left}
 .lv.next{border-color:var(--accent);border-width:2px;background:var(--accent-soft)}
-.lv .ico{font-size:28px;flex:none;line-height:1}
+.lvtop{display:flex;align-items:center;gap:13px}
+.lv .ico{font-size:26px;flex:none;line-height:1}
 .lv .txt{flex:1;min-width:0}
-.lv .nm{font-weight:600;font-size:18px}
-.lv .ws{font-size:14px;color:var(--muted);margin-top:2px;
+.lv .nm{font-weight:600;font-size:18px;display:block}
+.lv .ws{font-size:14px;color:var(--muted);margin-top:2px;display:block;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lv .rt{flex:none;text-align:right;font-size:15px;letter-spacing:1px}
-.lv .go{color:var(--accent);font-weight:600;white-space:nowrap}
+.lv .rt{flex:none;text-align:right;font-size:16px;letter-spacing:1px}
+.lvacts{display:flex;gap:8px;margin-top:12px}
+.lvacts .mini{flex:1;text-align:center;padding:11px 6px}
+.mini.go{border-color:var(--accent);color:var(--accent);font-weight:600}
 .stars{font-size:34px;letter-spacing:6px;margin-bottom:6px;min-height:40px}
 .star-off{opacity:.22}
 .streak{color:var(--warn);font-weight:600}
@@ -221,6 +221,7 @@ input.bad{border-color:var(--warn)}
       <h1>Now without looking!</h1>
       <p class="sub" style="margin:12px auto 24px;max-width:30ch" id="ready-sub"></p>
       <button class="btn primary" id="ready-go" style="text-align:center">I'm ready →</button>
+      <button class="reset" id="ready-later" style="margin-top:16px">Just warming up — go home</button>
     </div>
   </section>
 
@@ -498,20 +499,23 @@ function renderLevels(){
     const got  = stars[L.n] || 0;
     const done = L.ws.filter(w => stats[w].score >= GOAL).length;
     const isNext = L.n === nxt;
-    const right = got
-      ? `<div class="rt">${starRow(got)}</div>`
-      : `<div class="rt go">Start →</div>`;
-    return `<button class="lv ${isNext?"next":""}" data-level="${L.n}">
-      <span class="ico">${L.emoji}</span>
-      <span class="txt">
-        <span class="nm">${L.name}</span>
-        <span class="ws">${L.ws.length} words · ${done} learned</span>
-      </span>
-      ${right}
-    </button>`;
+    return `<div class="lv ${isNext?"next":""}">
+      <div class="lvtop">
+        <span class="ico">${L.emoji}</span>
+        <span class="txt">
+          <span class="nm">${L.name}</span>
+          <span class="ws">${L.ws.length} words · ${done} learned</span>
+        </span>
+        <span class="rt">${got ? starRow(got) : ""}</span>
+      </div>
+      <div class="lvacts">
+        <button class="mini" data-level="${L.n}" data-go="practice">📖 Warm up</button>
+        <button class="mini go" data-level="${L.n}" data-go="test">✍️ Spell it</button>
+      </div>
+    </div>`;
   }).join("");
-  $$("[data-level]").forEach(b =>
-    b.onclick = ()=> startLevel(+b.dataset.level));
+  $$("[data-go]").forEach(b =>
+    b.onclick = ()=> startLevel(+b.dataset.level, b.dataset.go));
 }
 
 function renderHome(){
@@ -560,9 +564,10 @@ let levelNo=0, streak=0, skipped=new Set(), sessionStart=0;
 /* A level runs in two passes over the SAME few words:
    warm up by copying them, then spell them blind. The repetition is the point —
    he asked to get familiar with a handful rather than face all 22 cold. */
-function startLevel(n){
+function startLevel(n, go){
   levelNo = n;
   if(!sessionStart) sessionStart = Date.now();
+  if(go === "test") return startTestPass();   // straight to the blind pass
   mode = "practice";
   queue = wordsOf(n);
   at = 0; streak = 0; skipped = new Set(); tally = {right:0,wrong:0};
@@ -799,8 +804,9 @@ function finish(){
   $("#done-actions").innerHTML = acts.join("");
   $$("[data-act]").forEach(b => b.onclick = ()=>{
     const a = b.dataset.act;
-    if(a==="next"){ const m = LEVELS.find(x=>x.n>levelNo); return m ? startLevel(m.n) : goHome(); }
-    if(a==="redo") return startLevel(levelNo);
+    // New words -> warm up first. Same words again -> he just did them, go straight to the test.
+    if(a==="next"){ const m = LEVELS.find(x=>x.n>levelNo); return m ? startLevel(m.n,"practice") : goHome(); }
+    if(a==="redo") return startLevel(levelNo, "test");
     goHome();
   });
 
@@ -825,6 +831,7 @@ $("#go").onclick = ()=>{
 };
 
 $("#ready-go").onclick     = startTestPass;
+$("#ready-later").onclick  = goHome;
 $("#test-all").onclick     = ()=> startRound("test");
 $("#practice-all").onclick = ()=> startRound("practice");
 
