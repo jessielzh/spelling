@@ -95,6 +95,8 @@ td.acc{width:92px;padding-left:14px;text-align:right;vertical-align:middle}
 .lv .ws{font-size:14px;color:var(--muted);margin-top:2px;display:block;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lv .rt{flex:none;text-align:right;font-size:16px;letter-spacing:1px}
+.legend{font-size:13px;color:var(--muted);text-align:center;
+  margin:2px 0 0;line-height:1.7}
 .lvacts{display:flex;gap:8px;margin-top:12px}
 .lvacts .mini{flex:1;text-align:center;padding:11px 6px}
 .mini.go{border-color:var(--accent);color:var(--accent);font-weight:600}
@@ -513,7 +515,8 @@ function renderLevels(){
         <button class="mini go" data-level="${L.n}" data-go="test">✍️ Spell it</button>
       </div>
     </div>`;
-  }).join("");
+  }).join("") +
+  `<p class="legend">⭐ spell every word &middot; ⭐⭐ at most one slip &middot; ⭐⭐⭐ all right first try</p>`;
   $$("[data-go]").forEach(b =>
     b.onclick = ()=> startLevel(+b.dataset.level, b.dataset.go));
 }
@@ -560,6 +563,10 @@ function renderHome(){
    ============================================================ */
 let mode="test", queue=[], at=0, phase="input", hinted=false, tally={right:0,wrong:0};
 let levelNo=0, streak=0, skipped=new Set(), sessionStart=0;
+/* Words actually spelled right in this pass. Stars depend on this, not on the
+   miss count — skipping every word leaves zero misses, which used to read as
+   a flawless level. */
+let solved=new Set();
 
 /* A level runs in two passes over the SAME few words:
    warm up by copying them, then spell them blind. The repetition is the point —
@@ -570,7 +577,7 @@ function startLevel(n, go){
   if(go === "test") return startTestPass();   // straight to the blind pass
   mode = "practice";
   queue = wordsOf(n);
-  at = 0; streak = 0; skipped = new Set(); tally = {right:0,wrong:0};
+  at = 0; streak = 0; skipped = new Set(); solved = new Set(); tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -578,7 +585,7 @@ function startLevel(n, go){
 function startTestPass(){
   mode = "test";
   queue = wordsOf(levelNo).slice().sort(()=>Math.random()-0.5);
-  at = 0; streak = 0; skipped = new Set(); tally = {right:0,wrong:0};
+  at = 0; streak = 0; skipped = new Set(); solved = new Set(); tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -599,7 +606,7 @@ function startRound(m){
     pool.sort(()=>Math.random()-0.5);
     pool.sort((a,b)=>rank(a)-rank(b));
   }
-  queue = pool; at = 0; streak = 0; skipped = new Set(); tally = {right:0,wrong:0};
+  queue = pool; at = 0; streak = 0; skipped = new Set(); solved = new Set(); tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -689,6 +696,7 @@ function submit(){
 
 /* correct */
 function accept(o, s, fix){
+  solved.add(o.w);             // counts even after a correction — he did spell it
   if(!fix){
     s.tries++;                 // every first attempt counts, right or wrong,
     s.hits++;                  // so hits/tries is a real accuracy rate
@@ -758,25 +766,33 @@ function finish(){
   const acts = [];
 
   if(levelNo){
-    // Stars come from the blind pass only: 3 = flawless, 2 = one slip, 1 = finished.
-    const L = LEVELS[levelNo-1];
-    const got = tally.wrong===0 ? 3 : tally.wrong<=1 ? 2 : 1;
-    const best = Math.max(stars[L.n]||0, got);
-    const isBest = got >= (stars[L.n]||0);
-    stars[L.n] = best; save();
+    /* Stars require actually spelling every word in the level.
+       ⭐ finished it · ⭐⭐ at most one slip · ⭐⭐⭐ all right first time. */
+    const L    = LEVELS[levelNo-1];
+    const left = L.ws.filter(w => !solved.has(w)).length;
+    const got  = left      ? 0
+               : tally.wrong===0 ? 3
+               : tally.wrong<=1  ? 2 : 1;
+
+    if(got){ stars[L.n] = Math.max(stars[L.n]||0, got); save(); }
     renderHome();
 
-    $("#done-emoji").textContent = got===3 ? "🏆" : got===2 ? "🎉" : "💪";
+    $("#done-emoji").textContent = left ? "🌱" : got===3 ? "🏆" : got===2 ? "🎉" : "💪";
     $("#done-stars").innerHTML   = starRow(got);
-    $("#done-title").textContent = `${L.name} complete!`;
-    $("#done-sub").textContent   =
-      (got===3 ? "Every single one right. " : `${tally.right} right, ${tally.wrong} to fix. `) +
-      (isBest && got===3 ? "That's a perfect level." : "");
+    $("#done-title").textContent = left ? "Not finished yet" : `${L.name} complete!`;
+    $("#done-sub").textContent   = left
+      ? `You skipped ${left} word${left===1?"":"s"}. Spell all ${L.ws.length} to earn a star.`
+      : got===3 ? "Every single one right — perfect level!"
+                : `${tally.right} right, ${tally.wrong} to fix.`;
 
-    const more = LEVELS.find(x => x.n > L.n);
-    if(more) acts.push(`<button class="btn primary" data-act="next" style="text-align:center">
-        ${more.emoji} Next: ${more.name} →</button>`);
-    acts.push(`<button class="btn" data-act="redo" style="text-align:center">↻ Play this level again</button>`);
+    if(left){
+      acts.push(`<button class="btn primary" data-act="redo" style="text-align:center">↻ Try the whole level</button>`);
+    } else {
+      const more = LEVELS.find(x => x.n > L.n);
+      if(more) acts.push(`<button class="btn primary" data-act="next" style="text-align:center">
+          ${more.emoji} Next: ${more.name} →</button>`);
+      acts.push(`<button class="btn" data-act="redo" style="text-align:center">↻ Play this level again</button>`);
+    }
   } else {
     const need = WORDS.filter(o=>stats[o.w].score<GOAL).length;
     const perfect = tally.wrong===0 && tally.right>0;
