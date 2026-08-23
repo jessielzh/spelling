@@ -637,8 +637,9 @@ function step(){
   const hb = $("#hintbox");
   hb.hidden = true; hb.innerHTML = "";
   $("#hint").hidden = (mode === "practice");
-  // Skip is for the blind pass — during warm-up the word is already on screen.
-  $("#skip").hidden = (mode === "practice");
+  // Skip works in both passes: copying out `characteristics` is a chore too when
+  // you type slowly, and being stuck on one word is what makes him give up.
+  $("#skip").hidden = false;
 
   const ans = $("#ans");
   ans.value=""; ans.classList.remove("bad"); ans.disabled=false;
