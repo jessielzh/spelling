@@ -53,6 +53,16 @@ button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
 #start .card{text-align:center;padding:44px 24px}
 #start .big{font-size:52px;margin-bottom:8px}
 
+/* ---------- week picker ---------- */
+.weekpick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+#start .weekpick{justify-content:center}
+.weekpick button{border:1px solid var(--line);background:var(--card);color:var(--muted);
+  border-radius:999px;padding:9px 15px;font-size:15px;min-height:42px;
+  transition:border-color .15s ease}
+.weekpick button:hover{border-color:var(--accent)}
+.weekpick button.on{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+
 /* ---------- home ---------- */
 .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:22px}
 .days{color:var(--accent);font-weight:600;font-size:16px;white-space:nowrap}
@@ -76,6 +86,15 @@ td.acc{width:92px;padding-left:14px;text-align:right;vertical-align:middle}
 .meter.low i{background:var(--warn)}
 .pct{font-size:12px;color:var(--muted);margin-top:5px;white-space:nowrap}
 
+/* Speak-it button in the word table. Sized for a finger, not a cursor. */
+.play{border:1px solid var(--line);background:var(--card);color:var(--muted);
+  border-radius:999px;width:34px;height:34px;font-size:15px;line-height:1;
+  margin-left:8px;vertical-align:middle;padding:0;
+  transition:border-color .15s ease,transform .08s ease}
+.play:hover{border-color:var(--accent);color:var(--accent)}
+.play:active{transform:scale(.92)}
+.play.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
 /* ---------- mode switch ---------- */
 .seg{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);
   border-radius:12px;padding:5px;margin-bottom:18px;box-shadow:var(--shadow)}
@@ -83,6 +102,24 @@ td.acc{width:92px;padding-left:14px;text-align:right;vertical-align:middle}
   font-weight:600;color:var(--muted);text-align:center;transition:background .15s ease}
 .seg button:hover{color:var(--ink)}
 .seg button.on{background:var(--accent);color:#fff}
+
+/* three tabs now — keep them on one line on a phone */
+@media (max-width:400px){ .seg button{font-size:14px;padding:11px 4px} }
+
+/* ---------- one-by-one rows ---------- */
+.solo{display:flex;align-items:center;gap:12px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:10px 13px;
+  box-shadow:var(--shadow)}
+.solo.next{border-color:var(--accent);border-width:2px;background:var(--accent-soft)}
+.solo .n{flex:none;min-width:20px;font-size:13px;color:var(--muted);text-align:right}
+.solo .txt{flex:1;min-width:0}
+.solo .nm{font-weight:600;font-size:17px;display:block;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.solo .sz{font-size:13px;color:var(--muted);display:block;margin-top:1px}
+.solo .acts{display:flex;gap:7px;flex:none}
+.solo .acts .mini{padding:9px 12px;font-size:16px;min-height:40px}
+.solo.done .nm{color:var(--muted)}
+.solo .wstars{letter-spacing:1px}
 
 /* ---------- level cards ---------- */
 .lv{background:var(--card);border:1px solid var(--line);border-radius:14px;
@@ -176,7 +213,8 @@ input.bad{border-color:var(--warn)}
     <div class="card">
       <div class="big">📣</div>
       <h1>Kai's Spelling</h1>
-      <p class="sub" style="margin:10px 0 22px">Week of <span data-week></span> &middot; <span data-count></span> words</p>
+      <p class="sub" style="margin:10px 0 18px">Week of <span data-week></span> &middot; <span data-count></span> words</p>
+      <div class="weekpick" data-weeks></div>
       <button class="btn primary" id="go" style="text-align:center">Tap to start</button>
       <p class="sub" style="margin-top:16px;font-size:14px">Turn the sound on 🔊</p>
     </div>
@@ -192,22 +230,32 @@ input.bad{border-color:var(--warn)}
       <div class="days" id="days"></div>
     </div>
 
+    <div class="weekpick" data-weeks></div>
+
     <div class="seg" id="seg">
-      <button data-view="levels">🎮 By level</button>
-      <button data-view="all">📋 All 22</button>
+      <button data-view="one">1️⃣ One</button>
+      <button data-view="levels">🎮 Level</button>
+      <button data-view="all">📋 All</button>
+    </div>
+
+    <div class="stack" data-view-panel="one" hidden>
+      <button class="btn primary" id="solo-go" style="text-align:left"></button>
+      <div id="solos" class="stack" style="margin-bottom:0"></div>
+      <p class="legend">Shortest words first. Each one: copy it, then spell it blind.<br>
+        ⭐⭐⭐ right first try &middot; ⭐⭐ second try &middot; ⭐ third try &middot; latest score shown</p>
     </div>
 
     <div class="stack" id="levels" data-view-panel="levels"></div>
 
     <div class="stack" data-view-panel="all" hidden>
-      <button class="btn primary" id="test-all">✍️ Test all 22
+      <button class="btn primary" id="test-all">✍️ Test all <span data-count></span>
         <small id="test-sub">Hear the word, type it — no peeking</small></button>
-      <button class="btn" id="practice-all">📖 Practice all 22
+      <button class="btn" id="practice-all">📖 Practice all <span data-count></span>
         <small>See the word and copy it</small></button>
     </div>
 
     <details class="more">
-      <summary>All 22 words &amp; how you're doing</summary>
+      <summary>All <span data-count></span> words &amp; how you're doing</summary>
       <div class="card" style="margin-top:12px">
         <div class="tally" id="tally"></div>
         <table id="list"></table>
@@ -269,55 +317,104 @@ input.bad{border-color:var(--warn)}
 
 <script>
 /* ============================================================
-   WORD LIST — update this each week.
+   WORD BANK — one entry per weekly test. Append the new week to the
+   END; never edit or delete an old one, because each week's progress
+   and stars are stored under its own `week` string.
    w = word   m = short kid meaning   c = syllable chunks (optional)
+   Levels run shortest words first — he types slowly, so early wins
+   matter more than covering the list fast. ~4-5 words each: warm up
+   by copying them, then spell them blind. About 3 minutes.
    ============================================================ */
-const WEEK      = "Aug 28";
-const TEST_DATE = "2026-08-28";
+const WEEKS = [
+  {
+    week: "Aug 28",
+    date: "2026-08-28",
+    words: [
+      { w:"line",         m:"one row of words in a poem" },
+      { w:"stanza",       m:"a group of lines in a poem",                    c:"stan·za" },
+      { w:"alliteration", m:"words next to each other starting with the same sound", c:"al·lit·er·a·tion" },
+      { w:"rhyme",        m:"words that end with the same sound" },
+      { w:"rhythm",       m:"the beat of a poem",                            c:"rhy·thm" },
+      { w:"imagery",      m:"words that make a picture in your mind",        c:"im·age·ry" },
+      { w:"onomatopoeia", m:"a word that sounds like its noise — buzz, splash", c:"on·o·mat·o·poe·ia" },
+      { w:"infer",        m:"to figure out from clues" },
+      { w:"splattered",   m:"splashed in drops",                             c:"splat·tered" },
+      { w:"depend",       m:"to need something" },
+      { w:"glazed",       m:"covered with something shiny" },
+      { w:"wheelbarrow",  m:"a small cart with one wheel",                   c:"wheel·bar·row" },
+      { w:"gist",         m:"the main idea" },
+      { w:"characteristics", m:"what someone or something is like",          c:"char·ac·ter·is·tics" },
+      { w:"contrast",     m:"to show how things are different",              c:"con·trast" },
+      { w:"theme",        m:"the big idea of a story" },
+      { w:"repetition",   m:"saying something again and again",              c:"rep·e·ti·tion" },
+      { w:"details",      m:"small pieces of information",                   c:"de·tails" },
+      { w:"purchase",     m:"to buy",                                        c:"pur·chase" },
+      { w:"community",    m:"a group of people living in one place",         c:"com·mu·ni·ty" },
+      { w:"deliver",      m:"to bring something to someone",                 c:"de·liv·er" },
+      { w:"figurative language", m:"words that mean something other than what they say", c:"fig·ur·a·tive" },
+    ],
+    levels: [
+      { n:1, name:"Short & Sweet",  emoji:"🌱", ws:["line","gist","rhyme","theme","infer"] },
+      { n:2, name:"Six Letters",    emoji:"🌿", ws:["stanza","depend","glazed","rhythm","details"] },
+      { n:3, name:"Getting Longer", emoji:"🌳", ws:["imagery","deliver","purchase","contrast"] },
+      { n:4, name:"Big Words",      emoji:"⛰️", ws:["community","splattered","repetition","wheelbarrow"] },
+      { n:5, name:"Champion Words", emoji:"🏔️", ws:["alliteration","onomatopoeia","characteristics","figurative language"] },
+    ],
+  },
 
-const WORDS = [
-  { w:"line",         m:"one row of words in a poem" },
-  { w:"stanza",       m:"a group of lines in a poem",                    c:"stan·za" },
-  { w:"alliteration", m:"words next to each other starting with the same sound", c:"al·lit·er·a·tion" },
-  { w:"rhyme",        m:"words that end with the same sound" },
-  { w:"rhythm",       m:"the beat of a poem",                            c:"rhy·thm" },
-  { w:"imagery",      m:"words that make a picture in your mind",        c:"im·age·ry" },
-  { w:"onomatopoeia", m:"a word that sounds like its noise — buzz, splash", c:"on·o·mat·o·poe·ia" },
-  { w:"infer",        m:"to figure out from clues" },
-  { w:"splattered",   m:"splashed in drops",                             c:"splat·tered" },
-  { w:"depend",       m:"to need something" },
-  { w:"glazed",       m:"covered with something shiny" },
-  { w:"wheelbarrow",  m:"a small cart with one wheel",                   c:"wheel·bar·row" },
-  { w:"gist",         m:"the main idea" },
-  { w:"characteristics", m:"what someone or something is like",          c:"char·ac·ter·is·tics" },
-  { w:"contrast",     m:"to show how things are different",              c:"con·trast" },
-  { w:"theme",        m:"the big idea of a story" },
-  { w:"repetition",   m:"saying something again and again",              c:"rep·e·ti·tion" },
-  { w:"details",      m:"small pieces of information",                   c:"de·tails" },
-  { w:"purchase",     m:"to buy",                                        c:"pur·chase" },
-  { w:"community",    m:"a group of people living in one place",         c:"com·mu·ni·ty" },
-  { w:"deliver",      m:"to bring something to someone",                 c:"de·liv·er" },
-  { w:"figurative language", m:"words that mean something other than what they say", c:"fig·ur·a·tive" },
+  /* Week 3 sheet. The last seven were marked ▲ — carried over from earlier
+     weeks, so they are the ones he is expected to already know. */
+  {
+    week: "Sep 4",
+    date: "2026-09-04",
+    words: [
+      { w:"figurative language", m:"words that mean something other than what they say", c:"fig·ur·a·tive" },
+      { w:"anonymous",    m:"written by someone whose name we don't know",   c:"a·non·y·mous" },
+      { w:"create",       m:"to make something new",                         c:"cre·ate" },
+      { w:"free verse",   m:"a poem with no rhyme and no set beat" },
+      { w:"evidence",     m:"proof from the text that shows you're right",   c:"ev·i·dence" },
+      { w:"repetition",   m:"saying something again and again",              c:"rep·e·ti·tion" },
+      { w:"fearful",      m:"full of fear — scared",                          c:"fear·ful" },
+      { w:"in depth",     m:"using a lot of details, complete" },
+      { w:"prose",        m:"ordinary writing in sentences, not poetry" },
+      { w:"pretend",      m:"to act as if something is real",                c:"pre·tend" },
+      { w:"chomp",        m:"to bite down hard and noisily" },
+      { w:"chores",       m:"small jobs you do around the house" },
+      { w:"iambic meter", m:"a beat that goes da-DUM, da-DUM, da-DUM",       c:"i·am·bic me·ter" },
+      { w:"onomatopoeia", m:"a word that sounds like its noise — buzz, splash", c:"on·o·mat·o·poe·ia" },
+      { w:"alliteration", m:"words next to each other starting with the same sound", c:"al·lit·er·a·tion" },
+      { w:"rhyme",        m:"words that end with the same sound" },
+      { w:"rhythm",       m:"the beat of a poem — its meter",                 c:"rhy·thm" },
+      { w:"imagery",      m:"words that make a picture in your mind",        c:"im·age·ry" },
+      { w:"theme",        m:"the big idea of a story" },
+      { w:"characteristics", m:"what someone or something is like",          c:"char·ac·ter·is·tics" },
+    ],
+    levels: [
+      { n:1, name:"Short & Sweet",  emoji:"🌱", ws:["chomp","prose","rhyme","theme"] },
+      { n:2, name:"Six Letters",    emoji:"🌿", ws:["create","chores","rhythm","fearful"] },
+      { n:3, name:"Getting Longer", emoji:"🌳", ws:["pretend","imagery","in depth","evidence"] },
+      { n:4, name:"Big Words",      emoji:"⛰️", ws:["anonymous","free verse","repetition","iambic meter"] },
+      { n:5, name:"Champion Words", emoji:"🏔️", ws:["alliteration","onomatopoeia","characteristics","figurative language"] },
+    ],
+  },
 ];
 
-/* Levels, shortest words first — he types slowly, so early wins matter more
-   than covering the list fast. Each level is ~4-5 words: warm up by copying
-   them, then spell them blind. About 3 minutes. */
-const LEVELS = [
-  { n:1, name:"Short & Sweet",   emoji:"🌱",
-    ws:["line","gist","rhyme","theme","infer"] },
-  { n:2, name:"Six Letters",     emoji:"🌿",
-    ws:["stanza","depend","glazed","rhythm","details"] },
-  { n:3, name:"Getting Longer",  emoji:"🌳",
-    ws:["imagery","deliver","purchase","contrast"] },
-  { n:4, name:"Big Words",       emoji:"⛰️",
-    ws:["community","splattered","repetition","wheelbarrow"] },
-  { n:5, name:"Champion Words",  emoji:"🏔️",
-    ws:["alliteration","onomatopoeia","characteristics","figurative language"] },
-];
+/* The active week. Everything below reads these, not WEEKS directly. */
+let WEEK, TEST_DATE, WORDS, LEVELS;
 
 const byWord  = w => WORDS.find(o => o.w === w);
 const wordsOf = n => LEVELS[n-1].ws.map(byWord);
+
+/* One at a time, shortest first — the gentlest way in on a bad day.
+   Count letters, not characters, so the order matches the "7 letters" label on
+   each row; a two-word phrase then sits after single words of the same length.
+   sort() is stable, so exact ties keep the sheet's own order. */
+const letters    = o => o.w.replace(/ /g,"").length;
+const soloOrder  = () => WORDS.slice()
+  .sort((a,b) => letters(a)-letters(b) || a.w.length-b.w.length);
+const soloAfter  = w => { const o = soloOrder(); return o[o.findIndex(x=>x.w===w)+1] || null; };
+/* Where "Start one by one" picks up: the first word not yet learned. */
+const soloFirst  = () => soloOrder().find(o => stats[o.w].score < GOAL) || soloOrder()[0];
 
 const GOAL = 2;   // spell it right twice and it's done
 
@@ -326,9 +423,13 @@ const GOAL = 2;   // spell it right twice and it's done
    ============================================================ */
 /* v2 = levels added. Bumping the key retires the old flat shape cleanly
    rather than migrating a few practice attempts. */
-const KEY = "kai-spelling:v2:" + WEEK;
+const LAST = "kai-spelling:last-week";   // which week was open last time
+let KEY = "";
 let stats = {};      // per word
 let stars = {};      // per level: best star count, 0-3
+/* Per word, from One-by-one. Unlike levels this is the LATEST result, not the
+   best — it's meant to show how he'd spell it today. */
+let wordStars = {};
 let view  = "levels";// which home view he last used
 
 const fresh = () => ({score:0, tries:0, hits:0, errs:[], skips:0});
@@ -338,19 +439,41 @@ function load(){
   try{ d = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){}
   stats = d.stats || {};
   stars = d.stars || {};
+  wordStars = d.wordStars || {};
   view  = d.view  || "levels";
   WORDS.forEach(o=>{ stats[o.w] = stats[o.w] || fresh(); });
 }
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify({stats, stars, view})); }catch(e){}
+  try{ localStorage.setItem(KEY, JSON.stringify({stats, stars, wordStars, view})); }catch(e){}
 }
 /* Must drop the stored copy BEFORE rebuilding — calling load() here would just
    read last week's data straight back in and save() would re-persist it. */
 function wipe(){
   try{ localStorage.removeItem(KEY); }catch(e){}
-  stats = {}; stars = {};
+  stats = {}; stars = {}; wordStars = {};
   WORDS.forEach(o=>{ stats[o.w] = fresh(); });
   save();
+}
+
+/* Open on the next test that hasn't happened yet; once the last one is past,
+   stay on it. A week Kai picked by hand wins over both. */
+function defaultWeek(){
+  let saved = null;
+  try{ saved = localStorage.getItem(LAST); }catch(e){}
+  if(WEEKS.some(w => w.week === saved)) return saved;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const upcoming = WEEKS.filter(w => new Date(w.date+"T00:00:00") >= today)
+                        .sort((a,b) => a.date < b.date ? -1 : 1)[0];
+  return (upcoming || WEEKS[WEEKS.length-1]).week;
+}
+
+function setWeek(name){
+  const wk = WEEKS.find(w => w.week === name) || WEEKS[WEEKS.length-1];
+  WEEK = wk.week; TEST_DATE = wk.date; WORDS = wk.words; LEVELS = wk.levels;
+  KEY = "kai-spelling:v2:" + WEEK;
+  try{ localStorage.setItem(LAST, WEEK); }catch(e){}
+  load();
 }
 
 /* ============================================================
@@ -495,6 +618,27 @@ function nextLevel(){
   return l ? l.n : LEVELS.length;
 }
 
+function renderWeeks(){
+  $$("[data-weeks]").forEach(box=>{
+    box.innerHTML = WEEKS.map(w =>
+      `<button data-wk="${w.week}"${w.week===WEEK ? ' class="on"' : ""}>${w.week}</button>`
+    ).join("");
+    Array.from(box.children).forEach(b => b.onclick = ()=>{
+      setWeek(b.dataset.wk);
+      renderAll();
+      setView(view);
+    });
+  });
+}
+
+/* Week label, counts, pills, levels and table all move together. */
+function renderAll(){
+  renderWeeks();
+  $$("[data-week]").forEach(e => e.textContent = WEEK);
+  $$("[data-count]").forEach(e => e.textContent = WORDS.length);
+  renderHome();
+}
+
 function renderLevels(){
   const nxt = nextLevel();
   $("#levels").innerHTML = LEVELS.map(L=>{
@@ -516,9 +660,41 @@ function renderLevels(){
       </div>
     </div>`;
   }).join("") +
-  `<p class="legend">⭐ spell every word &middot; ⭐⭐ at most one slip &middot; ⭐⭐⭐ all right first try</p>`;
-  $$("[data-go]").forEach(b =>
+  `<p class="legend">⭐ spell every word &middot; ⭐⭐ at most one slip &middot; ⭐⭐⭐ all right first try<br>
+    Shows your latest run of the level, not your best.</p>`;
+  $$("#levels [data-go]").forEach(b =>
     b.onclick = ()=> startLevel(+b.dataset.level, b.dataset.go));
+}
+
+function renderSolos(){
+  const order = soloOrder();
+  const nxt   = soloFirst();
+
+  $("#solos").innerHTML = order.map((o,i)=>{
+    const done = stats[o.w].score >= GOAL;
+    const got  = wordStars[o.w];        // undefined until he has spelled it blind
+    return `<div class="solo ${o===nxt?"next":""} ${done?"done":""}">
+      <span class="n">${i+1}</span>
+      <span class="txt">
+        <span class="nm">${o.w}${done?`<span class="tick">✓</span>`:""}</span>
+        <span class="sz">${letters(o)} letters${
+          got===undefined ? "" : ` &middot; <span class="wstars">${starRow(got)}</span>`}</span>
+      </span>
+      <span class="acts">
+        <button class="mini" data-solo="${o.w}" data-sgo="practice" title="Warm up">📖</button>
+        <button class="mini go" data-solo="${o.w}" data-sgo="test" title="Spell it">✍️</button>
+      </span>
+    </div>`;
+  }).join("");
+
+  $$("#solos [data-solo]").forEach(b =>
+    b.onclick = ()=> startSolo(b.dataset.solo, b.dataset.sgo));
+
+  const left = order.filter(o => stats[o.w].score < GOAL).length;
+  $("#solo-go").innerHTML = left < order.length
+    ? `▶️ Keep going: ${nxt.w}<small>${left} word${left===1?"":"s"} still to nail</small>`
+    : `▶️ Start one by one<small>${order.length} words, shortest first</small>`;
+  $("#solo-go").onclick = ()=> startSolo(soloFirst().w, "practice");
 }
 
 function renderHome(){
@@ -531,6 +707,7 @@ function renderHome(){
     d > 1 ? d+" days to go" : d===1 ? "Tomorrow!" : d===0 ? "Test today!" : "";
 
   renderLevels();
+  renderSolos();
 
   $("#test-sub").textContent = need
     ? `${need} word${need===1?"":"s"} still to nail`
@@ -550,12 +727,23 @@ function renderHome(){
     // Misspellings still recorded — moved to a hover tooltip instead of the row.
     const tip = s.errs.length ? ` title="typed: ${s.errs.join(", ")}"` : "";
     return `<tr${tip}>
-      <td><div class="wd">${o.w}${tick}</div><div class="mn">${o.m}</div></td>
+      <td><div class="wd">${o.w}${tick}${canSpeak ? `<button class="play" data-say="${o.w}"
+            aria-label="Say ${o.w}">🔊</button>` : ""}</div><div class="mn">${o.m}</div></td>
       <td class="acc">
         <div class="meter ${cls}"><i style="width:${pct || 0}%"></i></div>
         <div class="pct">${label}</div>
       </td></tr>`;
   }).join("");
+
+  /* Tapping one lights it up until the word has been read out, so he can see
+     which row is talking — several taps in a row otherwise look like nothing
+     happened while the previous word finishes. */
+  $$("#list [data-say]").forEach(b => b.onclick = ()=>{
+    $$("#list .play.on").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    say(b.dataset.say);
+    setTimeout(()=> b.classList.remove("on"), 1400);
+  });
 }
 
 /* ============================================================
@@ -563,6 +751,12 @@ function renderHome(){
    ============================================================ */
 let mode="test", queue=[], at=0, phase="input", hinted=false, tally={right:0,wrong:0};
 let levelNo=0, streak=0, sessionStart=0;
+/* The single word being worked in One-by-one mode, or null. */
+let solo=null;
+/* Per word this round: how many cold, blind asks it took, and which ask he
+   finally got it on. Retyping during a correction doesn't count — the right
+   spelling is on screen then. Drives the per-word stars in every test mode. */
+let asks={}, gotAt={};
 /* Words actually spelled right in this pass. Stars depend on this, not on the
    miss count — skipping every word leaves zero misses, which used to read as
    a flawless level. */
@@ -570,14 +764,14 @@ let solved=new Set();
 
 /* A level runs in two passes over the SAME few words:
    warm up by copying them, then spell them blind. The repetition is the point —
-   he asked to get familiar with a handful rather than face all 22 cold. */
+   he asked to get familiar with a handful rather than face the whole list cold. */
 function startLevel(n, go){
-  levelNo = n;
+  levelNo = n; solo = null;
   if(!sessionStart) sessionStart = Date.now();
   if(go === "test") return startTestPass();   // straight to the blind pass
   mode = "practice";
   queue = wordsOf(n);
-  at = 0; streak = 0; solved = new Set(); tally = {right:0,wrong:0};
+  at = 0; streak = 0; solved = new Set(); asks = {}; gotAt = {}; tally = {right:0,wrong:0};
   show("round");
   step();
 }
@@ -585,14 +779,34 @@ function startLevel(n, go){
 function startTestPass(){
   mode = "test";
   queue = wordsOf(levelNo).slice().sort(()=>Math.random()-0.5);
-  at = 0; streak = 0; solved = new Set(); tally = {right:0,wrong:0};
+  at = 0; streak = 0; solved = new Set(); asks = {}; gotAt = {}; tally = {right:0,wrong:0};
   show("round");
   step();
 }
 
-/* "Test all 22" stays available for later in the week. */
+/* One word, the same two passes: copy it, then spell it blind. Same shape as a
+   level, just a queue of one — for the days when five words is four too many. */
+function startSolo(w, go){
+  solo = byWord(w); levelNo = 0;
+  if(!solo) return;
+  if(!sessionStart) sessionStart = Date.now();
+  if(go === "test") return startSoloTest();
+  mode = "practice";
+  queue = [solo]; at = 0; streak = 0; solved = new Set(); asks = {}; gotAt = {}; tally = {right:0,wrong:0};
+  show("round");
+  step();
+}
+
+function startSoloTest(){
+  mode = "test";
+  queue = [solo]; at = 0; streak = 0; solved = new Set(); asks = {}; gotAt = {}; tally = {right:0,wrong:0};
+  show("round");
+  step();
+}
+
+/* "Test all" stays available for later in the week. */
 function startRound(m){
-  levelNo = 0;
+  levelNo = 0; solo = null;
   if(!sessionStart) sessionStart = Date.now();
   mode = m;
   let pool = (m==="practice")
@@ -606,12 +820,12 @@ function startRound(m){
     pool.sort(()=>Math.random()-0.5);
     pool.sort((a,b)=>rank(a)-rank(b));
   }
-  queue = pool; at = 0; streak = 0; solved = new Set(); tally = {right:0,wrong:0};
+  queue = pool; at = 0; streak = 0; solved = new Set(); asks = {}; gotAt = {}; tally = {right:0,wrong:0};
   show("round");
   step();
 }
 
-/* Ordering for "Test all 22": words he's actually missing come first, and
+/* Ordering for "Test all": words he's actually missing come first, and
    within each group the easier levels lead — he types slowly, so early wins
    matter more than front-loading the monsters. */
 const levelOf = w => LEVELS.findIndex(L => L.ws.includes(w));
@@ -644,7 +858,9 @@ function step(){
   phase="input"; hinted=false;
 
   const o = current();
-  const where = levelNo
+  const where = solo
+    ? `1️⃣ ${mode==="practice" ? "Warm up" : "Spell it"}`
+    : levelNo
     ? `${LEVELS[levelNo-1].emoji} ${mode==="practice" ? "Warm up" : "Spell it"}`
     : "All words";
   const fire = streak >= 3 ? ` <span class="streak">🔥 ${streak} in a row</span>` : "";
@@ -660,7 +876,7 @@ function step(){
   $("#hint").hidden = (mode === "practice");
   // Skip works in both passes: copying out `characteristics` is a chore too when
   // you type slowly, and being stuck on one word is what makes him give up.
-  $("#skip").hidden = false;
+  $("#skip").hidden = !!solo;
 
   const ans = $("#ans");
   ans.value=""; ans.classList.remove("bad"); ans.disabled=false;
@@ -704,6 +920,10 @@ function submit(){
   const s   = stats[o.w];
   const fix = (phase === "retry");        // already got it wrong once
 
+  // A fresh, blind ask — a miss sends the word round again, so this counts the
+  // first / second / third try that the per-word star is priced on.
+  if(mode==="test" && !fix) asks[o.w] = (asks[o.w]||0) + 1;
+
   if(ok) return accept(o, s, fix);
   return refuse(o, s, typed, fix);
 }
@@ -711,6 +931,7 @@ function submit(){
 /* correct */
 function accept(o, s, fix){
   solved.add(o.w);             // counts even after a correction — he did spell it
+  if(mode==="test" && !fix && !gotAt[o.w]) gotAt[o.w] = asks[o.w];
   if(!fix){
     s.tries++;                 // every first attempt counts, right or wrong,
     s.hits++;                  // so hits/tries is a real accuracy rate
@@ -770,12 +991,27 @@ function step2(){ gen++; at++; step(); }
 function finish(){
   gen++;                 // stop any pending timer from re-entering the round
   // Warm-up just ended -> hand off to the blind pass on the same words.
+  if(solo && mode==="practice"){
+    $("#ready-sub").textContent =
+      "Same word — but this time you'll only hear it.";
+    return show("ready");
+  }
   if(levelNo && mode==="practice"){
     const L = LEVELS[levelNo-1];
     $("#ready-sub").textContent =
       `Same ${L.ws.length} words — but this time you'll only hear them.`;
     return show("ready");
   }
+  /* Every blind pass rewrites the star for each word it actually got spelled —
+     level, one-by-one or the whole list alike. Always the LATEST result, so the
+     home screen shows how he spells the word today, not on his best day.
+     A word he only got right during a correction never set gotAt: that's a miss,
+     and it scores nothing. Words he never reached keep their old star. */
+  if(mode==="test"){
+    solved.forEach(w => { wordStars[w] = gotAt[w] ? Math.max(0, 4 - gotAt[w]) : 0; });
+    save();
+  }
+
   renderHome();
 
   const minutes = sessionStart ? Math.round((Date.now()-sessionStart)/60000) : 0;
@@ -790,7 +1026,8 @@ function finish(){
                : tally.wrong===0 ? 3
                : tally.wrong<=1  ? 2 : 1;
 
-    if(got){ stars[L.n] = Math.max(stars[L.n]||0, got); save(); }
+    // Latest completed run of the level, not his best — same rule as the words.
+    if(got){ stars[L.n] = got; save(); }
     renderHome();
 
     $("#done-emoji").textContent = left ? "🌱" : got===3 ? "🏆" : got===2 ? "🎉" : "💪";
@@ -808,6 +1045,32 @@ function finish(){
       if(more) acts.push(`<button class="btn primary" data-act="next" style="text-align:center">
           ${more.emoji} Next: ${more.name} →</button>`);
       acts.push(`<button class="btn" data-act="redo" style="text-align:center">↻ Play this level again</button>`);
+    }
+  } else if(solo){
+    /* ⭐⭐⭐ right first ask · ⭐⭐ second · ⭐ third · none after that.
+       finish() has already banked it above. */
+    const done = solved.has(solo.w);
+    const got  = done ? (wordStars[solo.w] || 0) : 0;
+    const next = soloAfter(solo.w);
+
+    $("#done-emoji").textContent = !done ? "🌱"
+      : got===3 ? "🏆" : got===2 ? "🎉" : got===1 ? "💪" : "🌱";
+    $("#done-stars").innerHTML   = done ? starRow(got) : "";
+    $("#done-title").textContent = done ? `${solo.w} ✓` : "Not finished yet";
+    $("#done-sub").textContent   = !done
+      ? "Come back to this one — it still needs spelling."
+      : got===3 ? "Right first try — three stars!"
+      : got===2 ? "Got it on the second try — two stars."
+      : got===1 ? "Got it on the third try — one star."
+      : "You got there in the end. Go again for a star.";
+
+    if(!done){
+      acts.push(`<button class="btn primary" data-act="soloredo" style="text-align:center">↻ Try it again</button>`);
+    } else if(next){
+      acts.push(`<button class="btn primary" data-act="solonext" style="text-align:center">Next word: ${next.w} →</button>`);
+      acts.push(`<button class="btn" data-act="soloredo" style="text-align:center">↻ This word again</button>`);
+    } else {
+      acts.push(`<button class="btn primary" data-act="soloredo" style="text-align:center">↻ This word again</button>`);
     }
   } else {
     const need = WORDS.filter(o=>stats[o.w].score<GOAL).length;
@@ -828,7 +1091,7 @@ function finish(){
     box.textContent = `🎈 You've been working ${minutes} minutes — time for a break!`;
     acts.length = 0;                       // make stopping the obvious choice
     acts.push(`<button class="btn primary" data-act="home" style="text-align:center">Done for today 🎈</button>`);
-    acts.push(`<button class="btn" data-act="next" style="text-align:center">One more level</button>`);
+    acts.push(`<button class="btn" data-act="${solo ? "solonext" : "next"}" style="text-align:center">${solo ? "One more word" : "One more level"}</button>`);
   } else {
     box.hidden = true;
   }
@@ -840,6 +1103,9 @@ function finish(){
     // New words -> warm up first. Same words again -> he just did them, go straight to the test.
     if(a==="next"){ const m = LEVELS.find(x=>x.n>levelNo); return m ? startLevel(m.n,"practice") : goHome(); }
     if(a==="redo") return startLevel(levelNo, "test");
+    // New word -> warm up first. Same word again -> he just saw it, go straight to the test.
+    if(a==="solonext"){ const n = solo && soloAfter(solo.w); return n ? startSolo(n.w,"practice") : goHome(); }
+    if(a==="soloredo") return startSolo(solo.w, "test");
     goHome();
   });
 
@@ -851,10 +1117,8 @@ function goHome(){ renderHome(); show("home"); }
 /* ============================================================
    Wiring
    ============================================================ */
-load();
-$$("[data-week]").forEach(e=>e.textContent = WEEK);
-$$("[data-count]").forEach(e=>e.textContent = WORDS.length);
-renderHome();
+setWeek(defaultWeek());
+renderAll();
 
 $("#go").onclick = ()=>{
   // Prime the speech engine inside a user gesture (Safari requires this).
@@ -863,12 +1127,13 @@ $("#go").onclick = ()=>{
   show("home");
 };
 
-$("#ready-go").onclick     = startTestPass;
+$("#ready-go").onclick     = ()=> solo ? startSoloTest() : startTestPass();
 $("#ready-later").onclick  = goHome;
 $("#test-all").onclick     = ()=> startRound("test");
 $("#practice-all").onclick = ()=> startRound("practice");
 
-/* Two ways to work: short levels, or the whole list. Remembered between visits. */
+/* Three ways to work: short levels, one word at a time, or the whole list.
+   Remembered between visits. */
 function setView(v){
   view = v;
   $$("[data-view-panel]").forEach(p => p.hidden = (p.dataset.viewPanel !== v));
@@ -922,10 +1187,10 @@ $("#skip").onclick = ()=>{
    scores are saved as he goes, so nothing is lost by just going home. */
 $("#quit").onclick = ()=> levelNo ? goHome() : finish();
 $("#reset").onclick = ()=>{
-  if(!confirm("Clear this week's progress?")) return;
+  if(!confirm(`Clear progress for ${WEEK}?`)) return;
   wipe();
   setView(view);
-  renderHome();
+  renderAll();
 };
 </script>
 </body>
